@@ -4,15 +4,16 @@ plugins {
     id 'application'
     id 'idea'
     id 'jacoco'
-    id 'org.inferred.processors' version '1.2.10'
+    id 'org.inferred.processors' version '3.3.0'
     id "net.ltgt.apt" version "0.21"
     id 'com.github.johnrengelman.shadow' version '4.0.4'
+    id 'maven'
 }
 
 apply plugin: 'net.ltgt.apt-idea'
 
 group 'com.devshawn'
-
+version '0.2.16-SNAPSHOT'
 mainClassName = 'com.devshawn.kafka.gitops.MainCommand'
 
 sourceCompatibility = 1.8
@@ -32,6 +33,9 @@ dependencies {
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
     compile group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
 
+    compile group: 'software.amazon.msk', name: 'aws-msk-iam-auth', version: '1.1.0'
+    compile group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.12.28'
+
     processor 'org.inferred:freebuilder:2.5.0'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
@@ -46,16 +50,7 @@ jacocoTestReport {
     reports {
         xml.enabled = true
         html.enabled = true
-        xml.destination "${buildDir}/reports/jacoco/report.xml"
-    }
-
-    afterEvaluate {
-        classDirectories = files(classDirectories.files.collect {
-            fileTree(dir: it,
-                    excludes: [
-                            '**/*_Builder*/**',
-                    ])
-        })
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
     }
 }
 
@@ -78,3 +73,13 @@ task buildRelease(type: Zip, group: "build") {
 
 buildRelease.dependsOn buildExecutableJar
 buildExecutableJar.dependsOn shadowJar
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "http://<replace url>/repository/maven-snapshots/") {
+                authentication(userName: "user", password: "")
+            }
+        }
+    }
+}
